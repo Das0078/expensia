@@ -1,7 +1,8 @@
 import { tabs } from "@/constants/data";
 import { colors, components } from "@/constants/theme";
+import { useAuth } from "@clerk/expo";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { Image } from "expo-image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -19,24 +20,36 @@ const TABS_BY_NAME = tabs.reduce<Record<string, AppTab>>((map, tab) => {
     return map;
 }, {});
 
-const TabLayout = () => (
-    <Tabs
-        screenOptions={{
-            headerShown: false,
-        }}
-        tabBar={(props) => <SlidingTabBar {...props} />}
-    >
-        {tabs.map((tab) => (
-            <Tabs.Screen
-                key={tab.name}
-                name={tab.name}
-                options={{
-                    title: tab.title,
-                }}
-            />
-        ))}
-    </Tabs>
-);
+const TabLayout = () => {
+    const { isLoaded, isSignedIn } = useAuth();
+
+    if (!isLoaded) {
+        return null;
+    }
+
+    if (!isSignedIn) {
+        return <Redirect href="/(auth)/SignIn" />;
+    }
+
+    return (
+        <Tabs
+            screenOptions={{
+                headerShown: false,
+            }}
+            tabBar={(props) => <SlidingTabBar {...props} />}
+        >
+            {tabs.map((tab) => (
+                <Tabs.Screen
+                    key={tab.name}
+                    name={tab.name}
+                    options={{
+                        title: tab.title,
+                    }}
+                />
+            ))}
+        </Tabs>
+    );
+};
 
 const SlidingTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
     const insets = useSafeAreaInsets();

@@ -1,5 +1,5 @@
 import "@/global.css"
-import { Link } from "expo-router";
+import { useUser } from "@clerk/expo";
 import { Text, View, Image, FlatList } from "react-native";
 import { SafeAreaView as RNSafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {styled} from 'nativewind';
@@ -16,10 +16,20 @@ import { components } from "@/constants/theme";
 const SafeAreaView = styled(RNSafeAreaView); // by tled wrap us nativewind can style it with className to safe area view and use it in app.tsx without importing nativewind in app.tsx and also can use className for styling it with nativewind
 
 export default function App() {
+  const { user } = useUser();
   const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const bottomContentInset =
     components.tabBar.height + Math.max(insets.bottom, components.tabBar.horizontalInset) + 12;
+  const displayName =
+    user?.fullName?.trim() ||
+    [user?.firstName?.trim(), user?.lastName?.trim()].filter(Boolean).join(" ") ||
+    HOME_USER.name;
+  const avatarUrl = user?.imageUrl?.trim();
+  const updatedAtMs = user?.updatedAt ? new Date(user.updatedAt).getTime() : NaN;
+  const avatarSource = avatarUrl
+    ? { uri: `${avatarUrl}${avatarUrl.includes("?") ? "&" : "?"}v=${Number.isFinite(updatedAtMs) ? updatedAtMs : "latest"}` }
+    : images.avatar;
   return (
     <SafeAreaView className="flex-1  bg-background p-5">
       <FlatList
@@ -28,9 +38,9 @@ export default function App() {
 <>
 <View className="home-header">
         <View className="home-user">
-          <Image source={images.avatar} className="home-avatar" />
+          <Image source={avatarSource} className="home-avatar" />
           <Text className="home-user-name">
-            {HOME_USER.name}
+            {displayName}
           </Text>
         </View>
         <Image source={icons.add} className="home-add-icon" />
