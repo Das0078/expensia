@@ -38,20 +38,20 @@ const SubscriptionCard = ({ name, price, currency, icon, billing, color, categor
 
             {
                 expanded && (
-                    <View className='sub-bdy'>
+                    <View className='sub-body'>
                         <View className='sub-details'>
 
                             <View className='sub-row'>
                                 <View className='sub-row-copy'>
                                     <Text className='sub-label'>Payment:</Text>
-                                    <Text className='sub-value'>{paymentMethod?.trim()}</Text>
+                                    <Text className='sub-value'>{paymentMethod?.trim() || "Not provided"}</Text>
                                 </View>
                             </View>
 
                             <View className='sub-row'>
                                 <View className='sub-row-copy'>
                                     <Text className='sub-label'>Category:</Text>
-                                    <Text className='sub-value'>{category?.trim() || plan?.trim()}</Text>
+                                    <Text className='sub-value'>{category?.trim() || plan?.trim() || "Not provided"}</Text>
                                 </View>
                             </View>
 
@@ -59,21 +59,21 @@ const SubscriptionCard = ({ name, price, currency, icon, billing, color, categor
                                 <View className='sub-row-copy'>
                                     <Text className='sub-label'>Started:</Text>
                                     <Text className='sub-value'>{startDate ?
-                                        formatSubscriptionDateTime(startDate) : " "}</Text>
+                                        formatSubscriptionDateTime(startDate) : "Not provided"}</Text>
                                 </View>
                             </View>
 
                             <View className='sub-row'>
                                 <View className='sub-row-copy'>
                                     <Text className='sub-label'>Renewal date:</Text>
-                                    <Text className='sub-value'>{renewalDate ? formatSubscriptionDateTime(renewalDate) : " "}</Text>
+                                    <Text className='sub-value'>{renewalDate ? formatSubscriptionDateTime(renewalDate) : "Not provided"}</Text>
                                 </View>
                             </View>
 
                             <View className='sub-row'>
                                 <View className='sub-row-copy'>
                                     <Text className='sub-label'>Status:</Text>
-                                    <Text className='sub-value'>{status ? formatStatusLabel(status) : " "}</Text>
+                                    <Text className='sub-value'>{status ? formatStatusLabel(status) : "Not provided"}</Text>
                                 </View>
                             </View>
 

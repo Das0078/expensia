@@ -20,16 +20,8 @@ export default function App() {
   const insets = useSafeAreaInsets();
   const bottomContentInset =
     components.tabBar.height + Math.max(insets.bottom, components.tabBar.horizontalInset) + 12;
-
-  const handleSubscriptionPress = (id: string) => {
-    
-  };
   return (
     <SafeAreaView className="flex-1  bg-background p-5">
-
-      
-    
-
       <FlatList
       className="flex-1"
       ListHeaderComponent={()=>(
@@ -66,7 +58,7 @@ export default function App() {
         
 
     </View>
-      <ListHeading title="All Subscription"/>
+      <ListHeading title="All Subscriptions"/>
 
 </>
       )}
