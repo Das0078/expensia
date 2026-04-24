@@ -441,4 +441,12 @@
     .category-chip-text-active {
         @apply text-accent;
     }
+
+     .auth-inline-input {
+     @apply flex-row items-center rounded-2xl border border-border bg-background px-4;
+ }
+
+.auth-inline-input.auth-input-error {
+   @apply border-destructive;
+}
 }

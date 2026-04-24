@@ -21,6 +21,7 @@ const SafeAreaView = styled(RNSafeAreaView);
 const SIGN_UP_ROUTE = "/(auth)/SignUp" as Href;
 const TABS_ROUTE = "/(tabs)" as Href;
 const ONBOARDING_ROUTE = "/Onboarding" as Href;
+type MfaCodeStrategy = "email_code" | "phone_code";
 
 export default function SignIn() {
   const router = useRouter();
@@ -34,11 +35,39 @@ export default function SignIn() {
   const [formMessage, setFormMessage] = useState("");
 
   const isBusy = fetchStatus === "fetching";
+  const emailSecondFactor = signIn.supportedSecondFactors?.find(
+    (factor): factor is Extract<NonNullable<typeof signIn.supportedSecondFactors>[number], { strategy: "email_code" }> =>
+      factor.strategy === "email_code"
+  );
+  const phoneSecondFactor = signIn.supportedSecondFactors?.find(
+    (factor): factor is Extract<NonNullable<typeof signIn.supportedSecondFactors>[number], { strategy: "phone_code" }> =>
+      factor.strategy === "phone_code"
+  );
+
+  const getCodeMfaStrategy = (): MfaCodeStrategy | null => {
+    if (signIn.status === "needs_client_trust") {
+      return "email_code";
+    }
+
+    if (signIn.status !== "needs_second_factor") {
+      return null;
+    }
+
+    if (emailSecondFactor) {
+      return "email_code";
+    }
+
+    if (phoneSecondFactor) {
+      return "phone_code";
+    }
+
+    return null;
+  };
+
+  const activeCodeMfaStrategy = getCodeMfaStrategy();
 
   const supportsEmailCodeMfa =
-    signIn.status === "needs_client_trust" ||
-    (signIn.status === "needs_second_factor" &&
-      signIn.supportedSecondFactors?.some((factor) => factor.strategy === "email_code"));
+    activeCodeMfaStrategy === "email_code" || activeCodeMfaStrategy === "phone_code";
 
   const hookError = useMemo(() => parseClerkError(errors, ""), [errors]);
   const mergedFieldErrors = {
@@ -46,6 +75,10 @@ export default function SignIn() {
     ...fieldErrors,
   };
   const visibleMessage = formMessage || hookError.message;
+  const codeDeliveryTarget =
+    activeCodeMfaStrategy === "phone_code"
+      ? phoneSecondFactor?.safeIdentifier || "your phone"
+      : emailSecondFactor?.safeIdentifier || normalizeEmail(email) || "your email";
 
   const finalizeSignIn = async () => {
     await signIn.finalize({
@@ -89,14 +122,24 @@ export default function SignIn() {
         return;
       }
 
-      if (
-        signIn.status === "needs_client_trust" ||
-        (signIn.status === "needs_second_factor" &&
-          signIn.supportedSecondFactors?.some((factor) => factor.strategy === "email_code"))
-      ) {
-        await signIn.mfa.sendEmailCode();
+      const strategy = getCodeMfaStrategy();
+      if (strategy) {
+        const sendResult =
+          strategy === "phone_code" ? await signIn.mfa.sendPhoneCode() : await signIn.mfa.sendEmailCode();
+
+        if (sendResult.error) {
+          const parsed = parseClerkError(sendResult.error, "We couldn't send your verification code. Please try again.");
+          setFieldErrors(parsed.fieldErrors);
+          setFormMessage(parsed.message);
+          return;
+        }
+
         setCode("");
-        setFormMessage("We sent a verification code to your email.");
+        setFormMessage(
+          strategy === "phone_code"
+            ? "We sent a verification code to your phone."
+            : "We sent a verification code to your email."
+        );
         return;
       }
 
@@ -120,7 +163,16 @@ export default function SignIn() {
     setFormMessage("");
 
     try {
-      const result = await signIn.mfa.verifyEmailCode({ code: code.trim() });
+      const strategy = getCodeMfaStrategy();
+      if (!strategy) {
+        setFormMessage("This verification method is not available right now. Please sign in again.");
+        return;
+      }
+
+      const result =
+        strategy === "phone_code"
+          ? await signIn.mfa.verifyPhoneCode({ code: code.trim() })
+          : await signIn.mfa.verifyEmailCode({ code: code.trim() });
 
       if (result.error) {
         const parsed = parseClerkError(result.error, "That code is invalid or expired. Try again.");
@@ -147,8 +199,25 @@ export default function SignIn() {
     setFormMessage("");
 
     try {
-      await signIn.mfa.sendEmailCode();
-      setFormMessage("A fresh verification code is on the way.");
+      const strategy = getCodeMfaStrategy();
+      if (!strategy) {
+        setFormMessage("This verification method is not available right now. Please sign in again.");
+        return;
+      }
+
+      const sendResult =
+        strategy === "phone_code" ? await signIn.mfa.sendPhoneCode() : await signIn.mfa.sendEmailCode();
+
+      if (sendResult.error) {
+        const parsed = parseClerkError(sendResult.error, "We couldn't resend the code. Please try again.");
+        setFieldErrors(parsed.fieldErrors);
+        setFormMessage(parsed.message);
+        return;
+      }
+
+      setFormMessage(
+        strategy === "phone_code" ? "A fresh verification code is on the way to your phone." : "A fresh verification code is on the way."
+      );
     } catch (error) {
       const parsed = parseClerkError(error, "We couldn't resend the code. Please try again.");
       setFormMessage(parsed.message);
@@ -192,7 +261,7 @@ export default function SignIn() {
                 </View>
 
                 <Text className="auth-helper">
-                  Enter the 6-digit code we sent to {normalizeEmail(email) || "your email"}.
+                  Enter the 6-digit code we sent to {codeDeliveryTarget}.
                 </Text>
 
                 <View className="auth-field">
